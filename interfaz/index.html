@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arena del Cálculo — Calculadora Multivariable</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+  <script src="/plotly.js"></script>
+  <style>
+    :root {
+      --pizarra-oscura: #18221e;
+      --pizarra-verde: #24352e;
+      --pizarra-panel: #1c2924;
+      --verde-areandina: #68b849;
+      --verde-brillante: #8ce068;
+      --tiza-blanca: #f4f7f5;
+      --tiza-gris: #b8c7c0;
+      --dorado-suave: #e2c07d;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background-color: var(--pizarra-oscura);
+      background-image:
+        radial-gradient(circle at 15% 15%, rgba(104, 184, 73, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(226, 192, 125, 0.06) 0%, transparent 40%);
+      color: var(--tiza-blanca);
+      margin: 0;
+      padding: 28px 18px 60px;
+      min-height: 100vh;
+    }
+    .container { max-width: 1080px; margin: auto; }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .btn-volver {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: var(--tiza-blanca);
+      background: var(--pizarra-verde);
+      border: 1px solid #3c5249;
+      padding: 10px 18px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 14px;
+      transition: 0.2s;
+    }
+    .btn-volver:hover { border-color: var(--verde-areandina); color: var(--verde-brillante); }
+
+    h1 {
+      margin: 0;
+      font-family: 'Cinzel', serif;
+      font-size: clamp(1.6rem, 3.5vw, 2.3rem);
+      color: var(--tiza-blanca);
+    }
+    h1 span { color: var(--verde-areandina); }
+
+    .card {
+      background: var(--pizarra-verde);
+      border: 1px solid #3c5249;
+      border-radius: 18px;
+      padding: 24px;
+      margin-bottom: 22px;
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.4);
+    }
+
+    .barra-ejemplos {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: var(--pizarra-panel);
+      border: 1px dashed #4a6358;
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 18px;
+    }
+    .barra-ejemplos span { font-size: 13px; font-weight: 700; color: var(--dorado-suave); margin-right: 4px; }
+    .ej-btn {
+      background: rgba(104, 184, 73, 0.14);
+      border: 1px solid rgba(104, 184, 73, 0.4);
+      color: var(--verde-brillante);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .ej-btn:hover { background: var(--verde-areandina); color: #0e1712; }
+
+    .menu-tabs { display: flex; flex-wrap: wrap; gap: 9px; margin: 10px 0 18px 0; }
+    .tab-btn {
+      padding: 10px 15px;
+      border-radius: 12px;
+      border: 1px solid #3c5249;
+      background: var(--pizarra-panel);
+      color: var(--tiza-gris);
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13.5px;
+      transition: all 0.15s ease;
+    }
+    .tab-btn:hover { border-color: var(--verde-areandina); color: var(--tiza-blanca); }
+    .tab-btn.active {
+      background: var(--verde-areandina);
+      border-color: var(--verde-brillante);
+      color: #0e1712;
+      box-shadow: 0 4px 14px rgba(104, 184, 73, 0.35);
+    }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+    .grid-2-fijo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+
+    @media (max-width: 600px) {
+      .grid-2-fijo { grid-template-columns: 1fr; }
+    }
+
+    label { display: block; font-size: 13px; color: var(--tiza-gris); margin-top: 12px; margin-bottom: 6px; font-weight: 600; }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #445c52;
+      background: #151f1b;
+      color: var(--tiza-blanca);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    input:focus, select:focus {
+      border-color: var(--verde-areandina);
+      box-shadow: 0 0 0 3px rgba(104, 184, 73, 0.2);
+    }
+
+    .int-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 14px;
+      background: var(--pizarra-panel);
+      border: 1px solid #384d44;
+      flex-wrap: wrap;
+    }
+    .int-glyphs {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      font-family: 'Cambria Math', Georgia, serif;
+      font-size: 30px;
+      line-height: 1;
+      font-weight: 700;
+      color: var(--verde-brillante);
+      background: #141d19;
+      border: 1px solid #3c5249;
+      border-radius: 12px;
+      padding: 8px 14px;
+      min-width: 60px;
+      justify-content: center;
+    }
+    .int-fields { flex: 1; min-width: 240px; }
+
+    .nota-coord {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--dorado-suave);
+      background: rgba(226, 192, 125, 0.1);
+      border-left: 3px solid var(--dorado-suave);
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+
+    .submit-btn {
+      margin-top: 22px;
+      padding: 13px 28px;
+      background: linear-gradient(135deg, var(--verde-areandina), #4a962e);
+      color: #0e1712;
+      font-weight: 800;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 15px;
+      box-shadow: 0 6px 18px rgba(104, 184, 73, 0.35);
+      transition: transform 0.12s ease;
+    }
+    .submit-btn:hover { transform: translateY(-2px); }
+    .loading-text { margin-left: 12px; font-size: 13px; color: var(--verde-brillante); font-weight: 600; }
+
+    .error-box {
+      background: rgba(220, 68, 55, 0.16);
+      border: 1px solid #e06c60;
+      color: #ffb8b0;
+      padding: 14px 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .paso-item {
+      background: var(--pizarra-panel);
+      border-left: 4px solid var(--verde-areandina);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      overflow-x: auto;
+    }
+    .paso-item.visible { opacity: 1; transform: translateY(0); }
+    .paso-titulo { font-size: 14px; font-weight: 700; color: var(--verde-brillante); margin-bottom: 6px; }
+    .resultado-box {
+      background: #151f1b;
+      border: 1px solid #3c5249;
+      border-radius: 14px;
+      padding: 18px;
+      margin-top: 12px;
+    }
+    .resultado-num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--dorado-suave);
+      margin: 10px 0 6px 0;
+    }
+    .grafica { margin-top: 12px; border-radius: 12px; overflow: hidden; border: 1px solid #3c5249; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-bar">
+      <h1>ARENA DEL <span>CÁLCULO</span></h1>
+      <a href="/" class="btn-volver">← Volver a la Portada</a>
+    </div>
+
+    <form method="POST" class="card" onsubmit="mostrarCargando()">
+      <div class="barra-ejemplos">
+        <span>Ejemplos rápidos del curso:</span>
+        <button type="button" class="ej-btn" onclick="cargarEjemplo('grad_valle')">↘ Descenso del Gradiente 3D</button>
+        <button type="button" class="ej-btn" onclick="cargarEjemplo('hiperboloide')">∬ Hiperboloide 3D (Malla)</button>
+        <button type="button" class="ej-btn" onclick="cargarEjemplo('green_circ')">∮ Teorema de Green (Círculo)</button>
+        <button type="button" class="ej-btn" onclick="cargarEjemplo('green_elipse')">∮ Elipse (Diapositiva 26)</button>
+        <button type="button" class="ej-btn" onclick="cargarEjemplo('campo_vortice')">∇ Vórtice F = &lt;-y, x, 0&gt;</button>
+        <button type="button" class="ej-btn" onclick="cargarEjemplo('triple_esferica')">∭ Esfera (Coordenadas Esféricas)</button>
+      </div>
+
+      <label style="margin-top:0;">1. Selecciona el módulo de Cálculo III:</label>
+      <div class="menu-tabs">
+        <button type="button" class="tab-btn {% if modo == 'simple' %}active{% endif %}" onclick="cambiarModo('simple')">∫ Simple</button>
+        <button type="button" class="tab-btn {% if modo == 'doble' %}active{% endif %}" onclick="cambiarModo('doble')">∬ Doble / Polar</button>
+        <button type="button" class="tab-btn {% if modo == 'triple' %}active{% endif %}" onclick="cambiarModo('triple')">∭ Triple / Esférica</button>
+        <button type="button" class="tab-btn {% if modo == 'linea' %}active{% endif %}" onclick="cambiarModo('linea')">∮ Línea / Green</button>
+        <button type="button" class="tab-btn {% if modo == 'campo' %}active{% endif %}" onclick="cambiarModo('campo')">∇ Campo Vectorial</button>
+        <button type="button" class="tab-btn {% if modo == 'gradiente' %}active{% endif %}" onclick="cambiarModo('gradiente')">↘ Descenso Gradiente</button>
+      </div>
+      <input type="hidden" id="modo" name="modo" value="{{ modo }}" />
+
+      <!-- SIMPLE -->
+      <div id="sec-simple" class="{% if modo != 'simple' %}hidden{% endif %}">
+        <div class="grid-2">
+          <div><label>Expresión / Integrando:</label><input type="text" name="expr_simple" value="{{ expr_simple }}" /></div>
+          <div><label>Diferencial (ej. dx, dy, dz o dteta):</label><input type="text" name="diff_simple" value="{{ diff_simple }}" /></div>
+        </div>
+        <div class="int-row">
+          <div class="int-glyphs"><span>∫</span></div>
+          <div class="int-fields">
+            <div class="grid-2">
+              <div><label style="margin-top:0;">Límite inferior:</label><input type="text" name="a_simple" value="{{ a_simple }}" /></div>
+              <div><label style="margin-top:0;">Límite superior:</label><input type="text" name="b_simple" value="{{ b_simple }}" /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOBLE -->
+      <div id="sec-doble" class="{% if modo != 'doble' %}hidden{% endif %}">
+        <div class="grid-3">
+          <div>
+            <label>Sistema de coordenadas:</label>
+            <select id="coord_doble" name="coord_doble">
+              <option value="cartesianas" {% if coord_doble == 'cartesianas' %}selected{% endif %}>Cartesianas (x, y) — J = 1</option>
+              <option value="polares" {% if coord_doble == 'polares' %}selected{% endif %}>Polares (r, θ) — Jacobiano J = r</option>
+            </select>
+          </div>
+          <div><label>Expresión f(x,y) o f(r,θ):</label><input type="text" id="expr_doble" name="expr_doble" value="{{ expr_doble }}" /></div>
+          <div><label>Diferenciales (ej. dy dx o dr dtheta):</label><input type="text" id="diff_doble" name="diff_doble" value="{{ diff_doble }}" /></div>
+        </div>
+        <div class="nota-coord">En cartesianas J = 1; en polares el sistema multiplica automáticamente el integrando por el Jacobiano <strong>r</strong>.</div>
+
+        <div class="int-row">
+          <div class="int-glyphs"><span>∫</span></div>
+          <div class="int-fields">
+            <div class="grid-2">
+              <div><label style="margin-top:0;">Límite inferior (exterior):</label><input type="text" id="l2_inf_doble" name="l2_inf_doble" value="{{ l2_inf_doble }}" /></div>
+              <div><label style="margin-top:0;">Límite superior (exterior):</label><input type="text" id="l2_sup_doble" name="l2_sup_doble" value="{{ l2_sup_doble }}" /></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="int-row">
+          <div class="int-glyphs"><span>∫</span><span>∫</span></div>
+          <div class="int-fields">
+            <div class="grid-2">
+              <div><label style="margin-top:0;">Límite inferior (interior):</label><input type="text" id="l1_inf_doble" name="l1_inf_doble" value="{{ l1_inf_doble }}" /></div>
+              <div><label style="margin-top:0;">Límite superior (interior):</label><input type="text" id="l1_sup_doble" name="l1_sup_doble" value="{{ l1_sup_doble }}" /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRIPLE -->
+      <div id="sec-triple" class="{% if modo != 'triple' %}hidden{% endif %}">
+        <div class="grid-3">
+          <div>
+            <label>Sistema de coordenadas:</label>
+            <select id="coord_triple" name="coord_triple">
+              <option value="cartesianas" {% if coord_triple == 'cartesianas' %}selected{% endif %}>Cartesianas (x, y, z) — J = 1</option>
+              <option value="cilindricas" {% if coord_triple == 'cilindricas' %}selected{% endif %}>Cilíndricas (r, θ, z) — J = r</option>
+              <option value="esfericas" {% if coord_triple == 'esfericas' %}selected{% endif %}>Esféricas (ρ, φ, θ) — J = ρ²·sen(φ)</option>
+            </select>
+          </div>
+          <div><label>Expresión / Densidad:</label><input type="text" id="expr_triple" name="expr_triple" value="{{ expr_triple }}" /></div>
+          <div><label>Diferenciales (ej. dz dy dx o drho dphi dtheta):</label><input type="text" id="diff_triple" name="diff_triple" value="{{ diff_triple }}" /></div>
+        </div>
+        <div class="nota-coord">En cilíndricas se aplica <strong>J = r</strong>; en esféricas se aplica <strong>J = ρ²·sen(φ)</strong>.</div>
+
+        <div class="int-row">
+          <div class="int-glyphs"><span>∫</span></div>
+          <div class="int-fields">
+            <div class="grid-2">
+              <div><label style="margin-top:0;">Límite inferior (1ª integral):</label><input type="text" id="l3_inf_triple" name="l3_inf_triple" value="{{ l3_inf_triple }}" /></div>
+              <div><label style="margin-top:0;">Límite superior (1ª integral):</label><input type="text" id="l3_sup_triple" name="l3_sup_triple" value="{{ l3_sup_triple }}" /></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="int-row">
+          <div class="int-glyphs"><span>∫</span><span>∫</span></div>
+          <div class="int-fields">
+            <div class="grid-2">
+              <div><label style="margin-top:0;">Límite inferior (2ª integral):</label><input type="text" id="l2_inf_triple" name="l2_inf_triple" value="{{ l2_inf_triple }}" /></div>
+              <div><label style="margin-top:0;">Límite superior (2ª integral):</label><input type="text" id="l2_sup_triple" name="l2_sup_triple" value="{{ l2_sup_triple }}" /></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="int-row">
+          <div class="int-glyphs"><span>∫</span><span>∫</span><span>∫</span></div>
+          <div class="int-fields">
+            <div class="grid-2">
+              <div><label style="margin-top:0;">Límite inferior (3ª integral):</label><input type="text" id="l1_inf_triple" name="l1_inf_triple" value="{{ l1_inf_triple }}" /></div>
+              <div><label style="margin-top:0;">Límite superior (3ª integral):</label><input type="text" id="l1_sup_triple" name="l1_sup_triple" value="{{ l1_sup_triple }}" /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INTEGRAL DE LÍNEA / CERRADA (GREEN) -->
+      <div id="sec-linea" class="{% if modo != 'linea' %}hidden{% endif %}">
+        <div class="nota-coord" style="margin-top:0;">Calcula <strong>∮ M dx + N dy</strong> sobre una curva parametrizada <strong>r(t) = ⟨x(t), y(t)⟩</strong> y verifica el <strong>Teorema de Green</strong>.</div>
+        <div class="grid-2">
+          <div><label>Componente M(x, y) acompañando a dx:</label><input type="text" id="m_linea" name="m_linea" value="{{ m_linea }}" /></div>
+          <div><label>Componente N(x, y) acompañando a dy:</label><input type="text" id="n_linea" name="n_linea" value="{{ n_linea }}" /></div>
+        </div>
+
+        <div class="int-row">
+          <div class="int-glyphs"><span>∮</span><span style="font-size:18px; align-self:flex-end;">C</span></div>
+          <div class="int-fields">
+            <div class="grid-2-fijo">
+              <div><label style="margin-top:0;">Parametrización x(t):</label><input type="text" id="xt_linea" name="xt_linea" value="{{ xt_linea }}" /></div>
+              <div><label style="margin-top:0;">Parametrización y(t):</label><input type="text" id="yt_linea" name="yt_linea" value="{{ yt_linea }}" /></div>
+              <div><label style="margin-top:0;">Parámetro inicial t₀:</label><input type="text" id="t0_linea" name="t0_linea" value="{{ t0_linea }}" /></div>
+              <div><label style="margin-top:0;">Parámetro final t₁:</label><input type="text" id="t1_linea" name="t1_linea" value="{{ t1_linea }}" /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CAMPO VECTORIAL (DIVERGENCIA Y ROTACIONAL) -->
+      <div id="sec-campo" class="{% if modo != 'campo' %}hidden{% endif %}">
+        <div class="nota-coord" style="margin-top:0;">Calcula la <strong>Divergencia (∇ · F)</strong> y el <strong>Rotacional (∇ × F)</strong> de un campo <strong>F(x, y, z) = P i + Q j + R k</strong>.</div>
+        <div class="int-row">
+          <div class="int-glyphs"><span>∇</span></div>
+          <div class="int-fields">
+            <div class="grid-3">
+              <div><label style="margin-top:0;">Componente P(x, y, z) [i]:</label><input type="text" id="p_campo" name="p_campo" value="{{ p_campo }}" /></div>
+              <div><label style="margin-top:0;">Componente Q(x, y, z) [j]:</label><input type="text" id="q_campo" name="q_campo" value="{{ q_campo }}" /></div>
+              <div><label style="margin-top:0;">Componente R(x, y, z) [k]:</label><input type="text" id="r_campo" name="r_campo" value="{{ r_campo }}" /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DESCENSO DEL GRADIENTE 3D -->
+      <div id="sec-gradiente" class="{% if modo != 'gradiente' %}hidden{% endif %}">
+        <div class="nota-coord" style="margin-top:0;">Simulación interactiva de optimización multivariable: sigue la dirección opuesta al gradiente <strong>(−∇f)</strong> hasta hallar el mínimo local sobre la superficie 3D.</div>
+        <div class="grid-2">
+          <div><label>Superficie objetivo f(x, y):</label><input type="text" id="expr_grad" name="expr_grad" value="{{ expr_grad }}" /></div>
+          <div><label>Tasa de aprendizaje α (Learning Rate):</label><input type="text" id="lr_grad" name="lr_grad" value="{{ lr_grad }}" /></div>
+        </div>
+        <div class="int-row">
+          <div class="int-glyphs"><span>−∇f</span></div>
+          <div class="int-fields">
+            <div class="grid-3">
+              <div><label style="margin-top:0;">Punto inicial x₀:</label><input type="text" id="x0_grad" name="x0_grad" value="{{ x0_grad }}" /></div>
+              <div><label style="margin-top:0;">Punto inicial y₀:</label><input type="text" id="y0_grad" name="y0_grad" value="{{ y0_grad }}" /></div>
+              <div><label style="margin-top:0;">Iteraciones (pasos):</label><input type="text" id="pasos_grad" name="pasos_grad" value="{{ pasos_grad }}" /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" id="btn-calcular" class="submit-btn">Calcular y Graficar</button>
+      <span id="txt-cargando" class="loading-text hidden">Procesando cálculos simbólicos y gráfica...</span>
+    </form>
+
+    {% if error %}
+      <div class="error-box"><strong>Aviso de validación:</strong> {{ error }}</div>
+    {% endif %}
+
+    {% if resultado_data %}
+      <div class="card">
+        <h2 style="margin-top:0; color:#8ce068;">Desarrollo Paso a Paso</h2>
+        <div id="pasos-contenedor">
+          {% for p in resultado_data.pasos %}
+            <div class="paso-item">
+              <div class="paso-titulo">{{ p.titulo }}</div>
+              <div>$${{ p.latex }}$$</div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <h2 style="margin-top:22px; color:#8ce068;">Resultado</h2>
+        <div class="resultado-box">
+          <div style="font-size:16px; overflow-x:auto;">$${{ resultado_data.latex_integral }}$$</div>
+          <div class="resultado-num">
+            <span>$${{ resultado_data.resultado_simbolico }}$$</span>
+            <span>({{ resultado_data.resultado }})</span>
+          </div>
+          <div style="color:#b8c7c0; font-size:13px; text-align:center;">{{ resultado_data.detalle_extra }}</div>
+        </div>
+
+        <h2 style="margin-top:22px; color:#8ce068;">Visualización Gráfica</h2>
+        <div class="grafica">{{ resultado_data.grafica_html | safe }}</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <script>
+    const MODOS = ["simple", "doble", "triple", "linea", "campo", "gradiente"];
+
+    function cambiarModo(nuevoModo) {
+      document.getElementById("modo").value = nuevoModo;
+      MODOS.forEach(m => {
+        document.getElementById("sec-" + m).classList.toggle("hidden", m !== nuevoModo);
+      });
+      const btns = document.querySelectorAll(".tab-btn");
+      btns.forEach((btn, idx) => btn.classList.toggle("active", MODOS[idx] === nuevoModo));
+    }
+
+    function cargarEjemplo(tipo) {
+      if (tipo === "grad_valle") {
+        cambiarModo("gradiente");
+        document.getElementById("expr_grad").value = "sin(x) + cos(y) + 0.15*(x^2 + y^2)";
+        document.getElementById("x0_grad").value = "2.8";
+        document.getElementById("y0_grad").value = "2.5";
+        document.getElementById("lr_grad").value = "0.2";
+        document.getElementById("pasos_grad").value = "30";
+      } else if (tipo === "hiperboloide") {
+        cambiarModo("doble");
+        document.getElementById("coord_doble").value = "polares";
+        document.getElementById("expr_doble").value = "sqrt(r^2 - 1) / r";
+        document.getElementById("diff_doble").value = "dr dtheta";
+        document.getElementById("l1_inf_doble").value = "1";
+        document.getElementById("l1_sup_doble").value = "2.5";
+        document.getElementById("l2_inf_doble").value = "0";
+        document.getElementById("l2_sup_doble").value = "2*pi";
+      } else if (tipo === "green_circ") {
+        cambiarModo("linea");
+        document.getElementById("m_linea").value = "-y";
+        document.getElementById("n_linea").value = "x";
+        document.getElementById("xt_linea").value = "2*cos(t)";
+        document.getElementById("yt_linea").value = "2*sin(t)";
+        document.getElementById("t0_linea").value = "0";
+        document.getElementById("t1_linea").value = "2*pi";
+      } else if (tipo === "green_elipse") {
+        cambiarModo("linea");
+        document.getElementById("m_linea").value = "x^3 + 2*y";
+        document.getElementById("n_linea").value = "4*x - 3*y^2";
+        document.getElementById("xt_linea").value = "3*cos(t)";
+        document.getElementById("yt_linea").value = "2*sin(t)";
+        document.getElementById("t0_linea").value = "0";
+        document.getElementById("t1_linea").value = "2*pi";
+      } else if (tipo === "campo_vortice") {
+        cambiarModo("campo");
+        document.getElementById("p_campo").value = "-y";
+        document.getElementById("q_campo").value = "x";
+        document.getElementById("r_campo").value = "0";
+      } else if (tipo === "triple_esferica") {
+        cambiarModo("triple");
+        document.getElementById("coord_triple").value = "esfericas";
+        document.getElementById("expr_triple").value = "1";
+        document.getElementById("diff_triple").value = "drho dphi dtheta";
+        document.getElementById("l1_inf_triple").value = "0";
+        document.getElementById("l1_sup_triple").value = "2";
+        document.getElementById("l2_inf_triple").value = "0";
+        document.getElementById("l2_sup_triple").value = "pi";
+        document.getElementById("l3_inf_triple").value = "0";
+        document.getElementById("l3_sup_triple").value = "2*pi";
+      }
+    }
+
+    function mostrarCargando() {
+      const btn = document.getElementById("btn-calcular");
+      const txt = document.getElementById("txt-cargando");
+      if (btn) { btn.disabled = true; btn.style.opacity = "0.75"; }
+      if (txt) { txt.classList.remove("hidden"); }
+      setTimeout(() => {
+        if (btn) { btn.disabled = false; btn.style.opacity = "1"; }
+        if (txt) { txt.classList.add("hidden"); }
+      }, 6500);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const pasos = document.querySelectorAll(".paso-item");
+      pasos.forEach((el, idx) => {
+        setTimeout(() => el.classList.add("visible"), 140 * (idx + 1));
+      });
+    });
+  </script>
+</body>
+</html>
